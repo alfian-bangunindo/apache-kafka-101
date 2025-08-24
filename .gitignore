@@ -1,0 +1,5 @@
+__pycache__/
+pyrightconfig.json
+.venv/
+dockervol/
+.env
