@@ -1,5 +1,7 @@
-def transform_weather_data(data: dict):
+def transform_weather_data(data: dict) -> dict:
     sensors = data["sensors"]
+
+    # Determine UV level based on UV index
     uv_level = (
         "Low"
         if sensors["uv_index"] < 2

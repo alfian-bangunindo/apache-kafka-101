@@ -17,6 +17,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.role == "produce_raw_data":
+        # Produce raw data to Kafka topic
         raw_data_producer = KafkaProducerWrapper()
         data_generator = DummyDataWeatherStation(NUM_DEVICES)
         try:
@@ -33,11 +34,13 @@ if __name__ == "__main__":
             raw_data_producer.close()
 
     elif args.role == "consume_raw_data":
+        # Consume raw data from Kafka topic, transform it, and store it to another Kafka topic and PostgreSQL database
         raw_data_consumer = KafkaConcumerWrapper(transform_weather_data)
         transform_data_producer = KafkaProducerWrapper(
             topic_name="weather_station_transformed"
         )
         db_handler = DatabaseHandler()
+
         try:
             for data in raw_data_consumer.consume():
                 transform_data_producer.send(data)

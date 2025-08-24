@@ -10,7 +10,14 @@ from src.config import (
 
 
 class DatabaseHandler:
+    """
+    A class to handle PostgreSQL database operations.
+    """
+
     def __init__(self):
+        """
+        Initialize the database connection using environment variable configurations.
+        """
         self.conn = psycopg2.connect(
             host=POSTGRES_HOST,
             port=POSTGRES_PORT,
@@ -20,6 +27,11 @@ class DatabaseHandler:
         )
 
     def insert_data(self, data: dict):
+        """
+        Insert data into the weather_sensor_readings table.
+        Args:
+            data (dict): A dictionary containing the device ID, timestamp, location, and sensor readings.
+        """
         insert_query = """
             INSERT INTO weather_sensor_readings
             (
@@ -56,8 +68,13 @@ class DatabaseHandler:
                 ),
             )
             self.conn.commit()
+
             print(f"Inserted data for device {data['device_id']}")
 
     def close(self):
+        """
+        Close the database connection.
+        """
         self.conn.close()
+
         print("Database connection closed.")
