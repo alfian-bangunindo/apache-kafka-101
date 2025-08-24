@@ -94,7 +94,7 @@ class DummyDataWeatherStation:
             dict: A dictionary containing the device ID, timestamp, location, and sensor readings.
         """
         device = random.choice(self.devices)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
         # Modify temperature and humidity
         self.last_temperature[device] += random.gauss(0, 0.01)
@@ -104,7 +104,7 @@ class DummyDataWeatherStation:
         self.last_wind_speed[device] += random.gauss(0, 0.01)
 
         # Modify precipitation and uv_index
-        if random.random() < 0.1:  # 30% chance to change
+        if random.random() < 0.1:  # 10% chance to change
             self.last_precipitation[device] = max(
                 0, self.last_precipitation[device] + random.gauss(0, 0.02)
             )
