@@ -56,9 +56,7 @@ class DatabaseHandler:
                 ),
             )
             self.conn.commit()
-            print(
-                f"Inserted data for device {data['device_id']} at {data['timestamp']}"
-            )
+            print(f"Inserted data for device {data['device_id']}")
 
     def close(self):
         self.conn.close()
