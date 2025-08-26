@@ -1,27 +1,27 @@
-def transform_weather_data(data: dict) -> dict:
-    sensors = data["sensors"]
+from pyspark.sql import DataFrame
 
-    # Determine UV level based on UV index
-    uv_level = (
-        "Low"
-        if sensors["uv_index"] < 2
-        else (
-            "Moderate"
-            if sensors["uv_index"] < 5
-            else "High" if sensors["uv_index"] < 7 else "Very High"
+from src.config import (
+    POSTGRES_DB,
+    POSTGRES_HOST,
+    POSTGRES_PASSWORD,
+    POSTGRES_PORT,
+    POSTGRES_USER,
+)
+
+
+def insert_spark_df_to_db(df: DataFrame, batch_id: int):
+    print(f"Batch ID: {batch_id}")
+    (
+        df.write.mode("append")
+        .format("jdbc")
+        .option("driver", "org.postgresql.Driver")
+        .option(
+            "url", f"jdbc:postgresql://{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
         )
+        .option("dbtable", "weather_sensor_aggregate")
+        .option("user", POSTGRES_USER)
+        .option("password", POSTGRES_PASSWORD)
+        .save()
     )
 
-    return {
-        "device_id": data["device_id"],
-        "timestamp": data["timestamp"],
-        "latitude": data["location"]["latitude"],
-        "longitude": data["location"]["longitude"],
-        "temperature": sensors["temperature"],
-        "humidity": sensors["humidity"],
-        "wind_speed": sensors["wind_speed"],
-        "wind_direction": sensors["wind_direction"],
-        "precipitation_mm": sensors["precipitation"],
-        "uv_index": sensors["uv_index"],
-        "uv_level": uv_level,
-    }
+    df.show(truncate=False)
