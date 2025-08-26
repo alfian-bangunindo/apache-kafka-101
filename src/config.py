@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
-KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
+KAFKA_TOPIC_SOURCE = os.getenv("KAFKA_TOPIC_SOURCE")
+KAFKA_TOPIC_TARGET = os.getenv("KAFKA_TOPIC_TARGET")
 KAFKA_CONSUMER_GROUP = os.getenv("KAFKA_CONSUMER_GROUP")
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
