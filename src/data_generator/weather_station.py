@@ -106,7 +106,7 @@ class DummyDataWeatherStation:
 
         # Modify temperature and humidity
         self.last_temperature[device] += random.gauss(0, 0.01)
-        self.last_humidity[device] += int(random.gauss(0, 0.1) * 10)
+        self.last_humidity[device] += int(random.gauss(0, 0.05) * 10)
 
         # Modify wind speed
         self.last_wind_speed[device] += random.gauss(0, 0.01)
