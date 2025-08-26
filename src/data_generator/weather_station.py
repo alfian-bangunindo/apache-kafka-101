@@ -112,37 +112,57 @@ class DummyDataWeatherStation:
                 0, self.last_uv_index[device] + random.gauss(0, 0.02)
             )
 
-        # Round some values
-        sensor_data = {
-            "device_id": device,
-            "timestamp": timestamp,
-            "temperature": round(self.last_temperature[device], 2),
-            "humidity": self.last_humidity[device],
-            "wind_speed": round(self.last_wind_speed[device], 2),
-            "wind_direction": self.last_wind_direction[device],
-            "precipitation": round(self.last_precipitation[device], 2),
-            "uv_index": round(self.last_uv_index[device], 2),
-        }
-
         # Get location
         latitude = self.locations[device][0]
         longitude = self.locations[device][1]
 
+        # Structuring the data
+        data = {
+            "device": {
+                "id": device,
+                "location": {
+                    "latitude": latitude,
+                    "longitude": longitude,
+                },
+            },
+            "timestamp": timestamp,
+            "sensors": {
+                "environment": {
+                    "temperature": {
+                        "value": round(self.last_temperature[device], 2),
+                        "unit": "°C",
+                    },
+                    "humidity": {
+                        "value": self.last_humidity[device],
+                        "unit": "%",
+                    },
+                },
+                "weather": {
+                    "wind": {
+                        "speed": {
+                            "value": round(self.last_wind_speed[device], 2),
+                            "unit": "km/h",
+                        },
+                        "direction": self.last_wind_direction[device],
+                    },
+                    "precipitation": {
+                        "value": round(self.last_precipitation[device], 2),
+                        "unit": "mm",
+                    },
+                    "uv_index": {
+                        "value": round(self.last_uv_index[device], 2),
+                    },
+                },
+            },
+        }
         print(
             f"[{timestamp}] {device} | "
             f"Location: ({latitude}, {longitude}) | "
-            f"Temp: {sensor_data['temperature']}°C | "
-            f"Humidity: {sensor_data['humidity']}% | "
-            f"Wind: {sensor_data['wind_speed']} km/h {sensor_data['wind_direction']} | "
-            f"Precipitation: {sensor_data['precipitation']} mm | "
-            f"UV Index: {sensor_data['uv_index']}"
+            f"Temp: {data['sensors']['environment']['temperature']['value']}°C | "
+            f"Humidity: {data['sensors']['environment']['humidity']['value']}% | "
+            f"Wind: {data['sensors']['weather']['wind']['speed']['value']} km/h {data['sensors']['weather']['wind']['direction']} | "
+            f"Precipitation: {data['sensors']['weather']['precipitation']['value']} mm | "
+            f"UV Index: {data['sensors']['weather']['uv_index']['value']}"
         )
-
-        data = {
-            "device_id": device,
-            "timestamp": timestamp,
-            "location": {"latitude": latitude, "longitude": longitude},
-            "sensors": sensor_data,
-        }
 
         return data
