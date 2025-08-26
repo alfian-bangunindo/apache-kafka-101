@@ -1,81 +1,35 @@
-import json
+from pyspark.sql import DataFrame
+from pyspark.sql.functions import col, expr, from_json
+from pyspark.sql.udf import StructType
 
-from kafka import KafkaConsumer
-
-from src.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP, KAFKA_TOPIC
+from src.data_transformer.base_spark_wrapper import BaseSparkWrapper
 
 
-class KafkaConcumerWrapper:
-    """A wrapper class for Kafka consumer to consume messages from a Kafka topic."""
+class SparkConsumer(BaseSparkWrapper):
+    """
+    A class to consume data from Kafka using Spark Structured Streaming.
+    """
 
-    def __init__(
+    def read_from_kafka(
         self,
-        transform_func=None,
-        topic_name: str | None = None,
-        consumer_group: str | None = None,
-    ):
+        json_schema: StructType,
+    ) -> DataFrame:
         """
-        Initialize the Kafka consumer with the provided or environment variable configurations.
-
-        Args:
-            transform_func (callable, optional): A function to transform each consumed message. Defaults to None.
-            topic_name (str, optional): The Kafka topic name to consume from. If None, uses KAFKA_TOPIC from environment variables. Defaults to None.
-            consumer_group (str, optional): The Kafka consumer group ID. If None, uses KAFKA_CONSUMER_GROUP from environment variables. Defaults to None.
+        Read data from Kafka topic and parse the JSON messages.
         """
-        print("STARTING KAFKA CONSUMER...")
-
-        if KAFKA_BOOTSTRAP_SERVERS:
-            self.bootstrap_servers = KAFKA_BOOTSTRAP_SERVERS
-        else:
-            raise ValueError(
-                "KAFKA_BOOTSTRAP_SERVERS is not set in environment variables."
-            )
-
-        if topic_name is not None:
-            self.topic_name = topic_name
-        else:
-            print(
-                "'topic_name' is not provided, using KAFKA_TOPIC from environment variables."
-            )
-            if KAFKA_TOPIC is None:
-                raise ValueError("KAFKA_TOPIC is not set in environment variables.")
-            self.topic_name = KAFKA_TOPIC
-
-        if consumer_group is not None:
-            self.consumer_group = consumer_group
-        else:
-            print(
-                "'consumer_group' is not provided, using KAFKA_CONSUMER_GROUP from environment variables."
-            )
-            if KAFKA_CONSUMER_GROUP is None:
-                raise ValueError(
-                    "KAFKA_CONSUMER_GROUP is not set in environment variables."
-                )
-            self.consumer_group = KAFKA_CONSUMER_GROUP
-
-        self.consumer = KafkaConsumer(
-            self.topic_name,
-            bootstrap_servers=self.bootstrap_servers,
-            group_id=self.consumer_group,
-            auto_offset_reset="earliest",
-            value_deserializer=lambda x: json.loads(x.decode("utf-8")),
+        # Read message from kafka
+        df = (
+            self.spark.readStream.format("kafka")
+            .option("kafka.bootstrap.servers", self.kafka_bootstrap_servers)
+            .option("subscribe", self.kafka_topic_source)
+            .option("startingOffsets", "earliest")
+            .load()
         )
-        self.transform_func = transform_func or (lambda msg: msg)
+        df = df.withColumn("value", expr("cast(value as string)"))
 
-        print("Connection to Kafka broker successful.")
-        print("=" * 50)
+        # Only take value key from message
+        df = df.withColumn(
+            "values_json", from_json(col("value"), json_schema)
+        ).selectExpr("values_json.*")
 
-    def consume(self):
-        """
-        Consume messages from the Kafka topic and yield transformed data.
-        """
-        try:
-            for message in self.consumer:
-                data = self.transform_func(message.value)
-                print("Data received from Kafka topic:", self.topic_name)
-
-                yield data
-        finally:
-            self.consumer.close()
-
-            print("Kafka consumer connection closed.")
+        return df
