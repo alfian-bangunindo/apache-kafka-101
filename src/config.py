@@ -1,6 +1,13 @@
 import os
 
 from dotenv import load_dotenv
+from pyspark.sql.types import (
+    DoubleType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 load_dotenv()
 
@@ -16,3 +23,116 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 POSTGRES_DB = os.getenv("POSTGRES_DB")
 
 NUM_DEVICES = 6
+
+JSON_SCHEMA = StructType(
+    [
+        StructField(
+            "device",
+            StructType(
+                [
+                    StructField("id", StringType(), True),
+                    StructField(
+                        "location",
+                        StructType(
+                            [
+                                StructField("latitude", DoubleType(), True),
+                                StructField("longitude", DoubleType(), True),
+                            ]
+                        ),
+                        True,
+                    ),
+                ]
+            ),
+            True,
+        ),
+        StructField("timestamp", TimestampType(), True),
+        StructField(
+            "sensors",
+            StructType(
+                [
+                    StructField(
+                        "environment",
+                        StructType(
+                            [
+                                StructField(
+                                    "temperature",
+                                    StructType(
+                                        [
+                                            StructField("value", DoubleType(), True),
+                                            StructField("unit", StringType(), True),
+                                        ]
+                                    ),
+                                    True,
+                                ),
+                                StructField(
+                                    "humidity",
+                                    StructType(
+                                        [
+                                            StructField("value", DoubleType(), True),
+                                            StructField("unit", StringType(), True),
+                                        ]
+                                    ),
+                                    True,
+                                ),
+                            ]
+                        ),
+                        True,
+                    ),
+                    StructField(
+                        "weather",
+                        StructType(
+                            [
+                                StructField(
+                                    "wind",
+                                    StructType(
+                                        [
+                                            StructField(
+                                                "speed",
+                                                StructType(
+                                                    [
+                                                        StructField(
+                                                            "value", DoubleType(), True
+                                                        ),
+                                                        StructField(
+                                                            "unit", StringType(), True
+                                                        ),
+                                                    ]
+                                                ),
+                                                True,
+                                            ),
+                                            StructField(
+                                                "direction", StringType(), True
+                                            ),
+                                        ]
+                                    ),
+                                    True,
+                                ),
+                                StructField(
+                                    "precipitation",
+                                    StructType(
+                                        [
+                                            StructField("value", DoubleType(), True),
+                                            StructField("unit", StringType(), True),
+                                        ]
+                                    ),
+                                    True,
+                                ),
+                                StructField(
+                                    "uv_index",
+                                    StructType(
+                                        [
+                                            StructField("value", DoubleType(), True),
+                                        ]
+                                    ),
+                                    True,
+                                ),
+                            ]
+                        ),
+                        True,
+                    ),
+                ]
+            ),
+            True,
+        ),
+    ]
+)
