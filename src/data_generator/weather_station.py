@@ -1,5 +1,5 @@
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 COMPASS_POINTS = [
     "North",
@@ -94,7 +94,15 @@ class DummyDataWeatherStation:
             dict: A dictionary containing the device ID, timestamp, location, and sensor readings.
         """
         device = random.choice(self.devices)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+        # simulate event_time with lateness
+        delay_seconds = 0
+        if random.random() < 0.3:  # 30% chance that the data will be late
+            delay_seconds = random.randint(0, 10)
+
+        timestamp = (datetime.now() - timedelta(seconds=delay_seconds)).strftime(
+            "%Y-%m-%d %H:%M:%S.%f"
+        )[:-3]
 
         # Modify temperature and humidity
         self.last_temperature[device] += random.gauss(0, 0.01)
