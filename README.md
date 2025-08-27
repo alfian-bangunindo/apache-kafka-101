@@ -4,34 +4,106 @@
 
 ```
 apache-kafka-101/
-├── src/
-│   ├── config.py              # Configuration variables
-│   ├── utils.py               # Utility functions
-│   ├── data_generator/        # Weather data generation
-│   └── data_streamer/         # Kafka producer/consumer
-├── init-scripts/              # Database initialization
-├── docker-compose.yaml        # Docker services
-├── requirements.txt           # Python dependencies
-└── main.py                    # Entry point
+├── consumer/
+│   ├── src
+│   │   ├── data_streamer/
+|   │   ├── data_transformer/
+│   │   ├── config.py
+│   │   └── utils.py
+│   ├── Dockerfile
+│   ├── main.py
+│   └── requirements.txt
+├── producer/
+│   ├── src
+│   │   ├── data_generator/
+|   │   ├── data_streamer/
+│   │   └── config.py
+│   ├── Dockerfile
+│   ├── main.py
+│   └── requirements.txt
+├── init-scripts/
+└── docker-compose.yaml
 ```
 
-## Setup
+## Objective
 
-### Installation
+This pipeline processes weather station sensor data from Surabaya. The transformation included two phases which are flattening and aggregating the data. The flattened data is pushed to another Kafka topic, while the aggregated data is inserted into the database in micro-batches (every 2 minutes).
+
+### Raw Data Sample
+
+```json
+{
+  "device": {
+    "id": "weather-station-6",
+    "location": {
+      "latitude": -7.154316,
+      "longitude": 112.58701
+    }
+  },
+  "timestamp": "2025-08-27 13:11:58.238",
+  "sensors": {
+    "environment": {
+      "temperature": {
+        "value": 26.87,
+        "unit": "°C"
+      },
+      "humidity": {
+        "value": 62,
+        "unit": "%"
+      }
+    },
+    "weather": {
+      "wind": {
+        "speed": {
+          "value": 5.2,
+          "unit": "km/h"
+        },
+        "direction": "West"
+      },
+      "precipitation": {
+        "value": 2.05,
+        "unit": "mm"
+      },
+      "uv_index": {
+        "value": 0.71
+      }
+    }
+  }
+}
+```
+
+### Flattened Data Sample
+
+```json
+{
+  "device_id": "weather-station-6",
+  "latitude": -7.154316,
+  "longitude": 112.58701,
+  "event_time": "2025-08-27T13:11:58.238+07:00",
+  "temperature_value": 26.87,
+  "humidity_value": 62,
+  "wind_speed_value": 5.2,
+  "wind_direction": "West",
+  "precipitation_value": 2.05,
+  "uv_index": 0.71
+}
+```
+
+### Aggregated Data Sample
+
+| device_id         | window_start        | window_end          | avg_temperature | min_temperature | max_temperature | avg_humidity | avg_wind_speed | max_uv_index |
+| ----------------- | ------------------- | ------------------- | --------------- | --------------- | --------------- | ------------ | -------------- | ------------ |
+| weather-station-6 | 2025-08-27 13:10:00 | 2025-08-27 13:12:00 | 26.87           | 26.87           | 26.87           | 62           | 5.2            | 0.71         |
+
+## How to Run
 
 1. Clone the repository.
 
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-3. Create `.env` file:
+2. Create `.env` file:
 
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env (you only need change `KAFKA_TOPIC_SOURCE` and `KAFKA_TOPIC_TARGET`)
 ```
 
 4. Start doker compose:
@@ -40,74 +112,19 @@ cp .env.example .env
 docker compose up -d
 ```
 
-This command will run both Kafka server and Kafka UI. It also initialize database with table called `weather_sensor_readings`
+This command will start all services defined in `docker-compose.yaml`, including:
 
-## How to Run
+- **producer**: generates dummy data and pushes it to a Kafka topic.
+- **consumer**: consumes the dummy data from Kafka, transforms it using Spark, and pushes it to a new Kafka topic and the database.
+- **spark-master**: coordinates distributed data processing across Spark workers.
+- **spark-worker**: executes the tasks assigned by the Spark master.
+- **kafka**: message broker that stores and streams data between producer and consumer.
+- **kafka-ui**: kafka web interface to monitor and manage Kafka topics.
+- **postgres**: stores the aggregated data.
 
-You need to open two terminal in order to see both log of producer and consumer.
+The producer and consumer will automatically start their processes right after the Docker Compose command is run.
 
-### Start Producer (Generate & Send Data)
-
-```bash
-python main.py --role produce_raw_data
-```
-
-### Start Consumer (Transform, Push to New Topic, and Store Data to DB)
-
-```bash
-python main.py --role consume_raw_data
-```
-
-## Sample Output
-
-### Producer Output
-
-```
-STARTING KAFKA PRODUCER...
-'topic_name' is not provided, using KAFKA_TOPIC from environment variables.
-Connection to Kafka broker successful.
-==================================================
-[2025-08-24 19:57:30.191] weather-station-5 | Location: (-7.158862, 112.849642) | Temp: 28.81°C | Humidity: 56% | Wind: 5.21 km/h South-West | Precipitation: 0 mm | UV Index: 8.44
-Data sent to Kafka topic: weather_station_data
-
-
-[2025-08-24 19:57:32.094] weather-station-4 | Location: (-7.318575, 112.780479) | Temp: 31.81°C | Humidity: 67% | Wind: 9.57 km/h South | Precipitation: 0 mm | UV Index: 9.13
-Data sent to Kafka topic: weather_station_data
-
-
-[2025-08-24 19:57:33.706] weather-station-2 | Location: (-7.420383, 112.64485) | Temp: 29.65°C | Humidity: 51% | Wind: 5.59 km/h South-West | Precipitation: 9.2 mm | UV Index: 0.59
-Data sent to Kafka topic: weather_station_data
-
-...
-```
-
-### Consumer Output
-
-```
-STARTING KAFKA CONSUMER...
-'topic_name' is not provided, using KAFKA_TOPIC from environment variables.
-'consumer_group' is not provided, using KAFKA_CONSUMER_GROUP from environment variables.
-Connection to Kafka broker successful.
-==================================================
-STARTING KAFKA PRODUCER...
-Connection to Kafka broker successful.
-==================================================
-Data received from Kafka topic: weather_station_data
-Data sent to Kafka topic: weather_station_transformed
-Inserted data for device weather-station-5
-
-
-Data received from Kafka topic: weather_station_data
-Data sent to Kafka topic: weather_station_transformed
-Inserted data for device weather-station-4
-
-
-Data received from Kafka topic: weather_station_data
-Data sent to Kafka topic: weather_station_transformed
-Inserted data for device weather-station-2
-
-...
-```
+## Results
 
 ### Kafka Topic: `weather_station_data` (Store Raw Data)
 
@@ -115,29 +132,31 @@ Inserted data for device weather-station-2
 
 ### Kafka Topic: `weather_station_transformed` (Store Transformed Data)
 
-![weather_station_transformedr](./images/weather_station_transformed_data.png)
+![weather_station_transformed](./images/weather_station_transformed_data.png)
+
+### Spark Master Web UI
+
+![spark_master_web_ui](./images/spark_master_web_ui.png)
 
 ### Database Query Results
 
 ```sql
-SELECT * FROM weather_sensor_readings LIMIT 10;
+SELECT * FROM weather_sensor_aggregate ORDER BY window_start DESC, device_id LIMIT 12;
 ```
 
 Output:
 
-```
-| event_id | device_id        | timestamp               | latitude  | longitude   | temperature | humidity | wind_speed | wind_direction | precipitation_mm | uv_index | uv_level   |
-|----------|------------------|-------------------------|-----------|-------------|-------------|----------|------------|----------------|------------------|----------|------------|
-| 1        | weather-station-5 | 2025-08-24 19:57:30.191 | -7.158862 | 112.849642  | 28.81       | 56       | 5.21       | South-West     | 0                | 8.44     | Very High  |
-| 2        | weather-station-4 | 2025-08-24 19:57:32.094 | -7.318575 | 112.780479  | 31.81       | 67       | 9.57       | South          | 0                | 9.13     | Very High  |
-| 3        | weather-station-2 | 2025-08-24 19:57:33.706 | -7.420383 | 112.64485   | 29.65       | 51       | 5.59       | South-West     | 9.2              | 0.59     | Low        |
-| 4        | weather-station-5 | 2025-08-24 19:57:35.637 | -7.158862 | 112.849642  | 28.79       | 56       | 5.2        | South-West     | 0                | 8.44     | Very High  |
-| 5        | weather-station-1 | 2025-08-24 19:57:37.025 | -7.339019 | 112.841093  | 30.34       | 74       | 6.81       | North-West     | 5.99             | 0.57     | Low        |
-| 6        | weather-station-3 | 2025-08-24 19:57:38.332 | -7.156054 | 112.740006  | 27.52       | 77       | 7.59       | South          | 6.45             | 0.25     | Low        |
-| 7        | weather-station-6 | 2025-08-24 19:57:39.678 | -7.315009 | 112.746605  | 31.38       | 51       | 9.06       | North          | 0                | 9.06     | Very High  |
-| 8        | weather-station-5 | 2025-08-24 19:57:41.583 | -7.158862 | 112.849642  | 28.79       | 56       | 5.2        | South-West     | 0                | 8.43     | Very High  |
-| 9        | weather-station-1 | 2025-08-24 19:57:42.894 | -7.339019 | 112.841093  | 30.34       | 74       | 6.82       | North-West     | 5.99             | 0.57     | Low        |
-| 10       | weather-station-1 | 2025-08-24 19:57:43.981 | -7.339019 | 112.841093  | 30.35       | 74       | 6.83       | North-West     | 5.99             | 0.61     | Low        |
-
-```
-
+| device_id         | window_start        | window_end          | avg_temperature | min_temperature | max_temperature | avg_humidity | avg_wind_speed | max_uv_index |
+| ----------------- | ------------------- | ------------------- | --------------- | --------------- | --------------- | ------------ | -------------- | ------------ |
+| weather-station-1 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 28.08           | 28.07           | 28.09           | 53           | 7.48           | 0.64         |
+| weather-station-2 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 30.29           | 30.27           | 30.30           | 54           | 5.00           | 7.29         |
+| weather-station-3 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 31.51           | 31.48           | 31.54           | 49           | 8.51           | 5.11         |
+| weather-station-4 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 28.44           | 28.40           | 28.46           | 73           | 9.40           | 0.52         |
+| weather-station-5 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 26.32           | 26.30           | 26.36           | 67           | 8.58           | 0.52         |
+| weather-station-6 | 2025-08-27 13:40:00 | 2025-08-27 13:42:00 | 27.02           | 27.00           | 27.04           | 61           | 5.16           | 0.76         |
+| weather-station-1 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 28.06           | 28.05           | 28.08           | 53           | 7.51           | 0.63         |
+| weather-station-2 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 30.28           | 30.26           | 30.30           | 56           | 5.02           | 7.30         |
+| weather-station-3 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 31.51           | 31.47           | 31.55           | 48           | 8.52           | 5.12         |
+| weather-station-4 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 28.45           | 28.43           | 28.48           | 73           | 9.40           | 0.54         |
+| weather-station-5 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 26.32           | 26.30           | 26.35           | 67           | 8.54           | 0.54         |
+| weather-station-6 | 2025-08-27 13:38:00 | 2025-08-27 13:40:00 | 26.98           | 26.97           | 26.99           | 62           | 5.16           | 0.79         |
