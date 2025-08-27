@@ -1,4 +1,65 @@
 services:
+  producer:
+    build: ./producer/
+    container_name: btj-producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - TZ=Asia/Jakarta
+
+  consumer:
+    build: ./consumer/
+    container_name: btj-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+      spark-master:
+        condition: service_started
+      spark-worker:
+        condition: service_started
+    env_file: .env
+    environment:
+      - TZ=Asia/Jakarta
+    volumes:
+      - ./dockervol/spark/checkpoints/checkpoint_db:/tmp/checkpoint_db
+      - ./dockervol/spark/checkpoints/checkpoint_kafka:/tmp/checkpoint_kafka
+
+  spark-master:
+    image: docker.io/bitnami/spark:4.0
+    container_name: btj-spark-master
+    environment:
+      - TZ=Asia/Jakarta
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    ports:
+      - "7077:7077"
+      - "8081:8080"
+
+  spark-worker:
+    image: docker.io/bitnami/spark:4.0
+    container_name: btj-spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - TZ=Asia/Jakarta
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=8
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+
   kafka:
     image: bitnami/kafka:3.7.1
     container_name: btj-kafka
@@ -17,6 +78,17 @@ services:
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions.sh",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -34,6 +106,7 @@ services:
     ports:
       - 5432:5432
     environment:
+      - TZ=Asia/Jakarta
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=postgres
