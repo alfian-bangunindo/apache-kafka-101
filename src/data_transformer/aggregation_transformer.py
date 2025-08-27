@@ -1,9 +1,20 @@
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import avg, col, max, min, round, window
+from pyspark.sql.streaming import StreamingQuery
 
 from src.data_transformer.base_transformer import BaseTransformer
 
 
 class AggregationTransformer(BaseTransformer):
+    def write_to_db(self, df: DataFrame) -> StreamingQuery:
+        return super().write_to_db(df)
+
+    def write_to_kafka(self, df: DataFrame) -> StreamingQuery:
+        return super().write_to_kafka(df)
+
+    def process(self, df: DataFrame, output: str):
+        return super().process(df, output)
+
     def transform(self, df):
         agg_df = (
             df.withWatermark("event_time", "10 seconds")
