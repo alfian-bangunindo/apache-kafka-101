@@ -7,12 +7,12 @@ apache-kafka-101/
 ├── src/
 │   ├── config.py              # Configuration variables
 │   ├── utils.py               # Utility functions
-│   ├── data_generator/         # Weather data generation
-│   └── data_streamer/        # Kafka producer/consumer
+│   ├── data_generator/        # Weather data generation
+│   └── data_streamer/         # Kafka producer/consumer
 ├── init-scripts/              # Database initialization
-├── docker-compose.yaml     # Docker services
-├── requirements.txt        # Python dependencies
-└── main.py                # Entry point
+├── docker-compose.yaml        # Docker services
+├── requirements.txt           # Python dependencies
+└── main.py                    # Entry point
 ```
 
 ## Setup
@@ -119,7 +119,7 @@ Inserted data for device weather-station-2
 
 ### Database Query Results
 
-````sql
+```sql
 SELECT * FROM weather_sensor_readings LIMIT 10;
 ```
 
@@ -140,5 +140,4 @@ Output:
 | 10       | weather-station-1 | 2025-08-24 19:57:43.981 | -7.339019 | 112.841093  | 30.35       | 74       | 6.83       | North-West     | 5.99             | 0.61     | Low        |
 
 ```
-````
 
