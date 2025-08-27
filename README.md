@@ -4,25 +4,28 @@
 
 ```
 apache-kafka-101/
-├── consumer/
-│   ├── src
-│   │   ├── data_streamer/
-|   │   ├── data_transformer/
-│   │   ├── config.py
-│   │   └── utils.py
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
-├── producer/
-│   ├── src
-│   │   ├── data_generator/
-|   │   ├── data_streamer/
-│   │   └── config.py
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
-├── init-scripts/
-└── docker-compose.yaml
+├── consumer/                          # Kafka consumer service
+│   ├── src/
+│   │   ├── data_streamer/             # Module for consuming data from Kafka
+│   │   ├── data_transformer/          # Module for processing and transforming data using Spark
+│   │   ├── config.py                  # Configuration (Kafka brokers, topics, DB connection, etc.)
+│   │   └── utils.py                   # Helper functions
+│   ├── Dockerfile                     # Docker image definition for the consumer
+│   ├── main.py                        # Entry point for the consumer app
+│   └── requirements.txt               # Python dependencies for the consumer
+│
+├── producer/                          # Kafka producer service
+│   ├── src/
+│   │   ├── data_generator/            # Module for generating dummy weather data
+│   │   ├── data_streamer/             # Module for streaming generated data to Kafka
+│   │   └── config.py                  # Configuration (Kafka brokers, topics, etc.)
+│   ├── Dockerfile                     # Docker image definition for the producer
+│   ├── main.py                        # Entry point for the producer app
+│   └── requirements.txt               # Python dependencies for the producer
+│
+├── init-scripts/                      # Script for schema initialization in PostgresSQL
+│
+└── docker-compose.yaml                # Docker Compose file to run all services (Kafka, Producer, Consumer, DB, and Spark)
 ```
 
 ## Objective
