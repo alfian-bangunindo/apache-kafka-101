@@ -1,7 +1,6 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, expr, from_json
 from pyspark.sql.udf import StructType
-
 from src.data_transformer.base_spark_wrapper import BaseSparkWrapper
 
 

@@ -12,8 +12,8 @@ class FlattenJSONTransformer(BaseTransformer):
     def write_to_kafka(self, df: DataFrame) -> StreamingQuery:
         return super().write_to_kafka(df)
 
-    def process(self, df: DataFrame, output: str):
-        return super().process(df, output)
+    def process(self, df: DataFrame, sink: str):
+        return super().process(df, sink)
 
     def transform(self, df):
         # Flatten the JSON structure
